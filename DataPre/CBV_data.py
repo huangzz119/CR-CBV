@@ -1,12 +1,21 @@
-from SPAcalculator import SPA
+"""
+Created on Wed Sep 4 17:43:41 2019
 
-# CBV parameters
+@author: hzz
+"""
+
+"""
+provide the all the initial parameter numbers of CBV model in txt,
+
+the txt file is used in info_of_portfolio_CBV
+"""
+import json
+
 L1 = 1
 delta1 = [3.10470, 0.32719, 0.24383, 0.84626, 0.74251, 1.50169, 1.37805, 1.34703, 2.41331, 5.33036]
 thetak1 = [0.17295, 1.09437, 1.20121, 0.52224, 0.73185, 0.41985, 0.47681, 0.26698, 0.16698, 0.05573]
 gamma1 = [[0.88492, 1.22682, 1.35137, 1.06651, 0.87261, 0.70619, 0.65540, 1.22383, 1.14098, 1.34346]]
 thetal1 = [0.52325]
-test1 = SPA(L1, delta1, thetak1, gamma1, thetal1)
 
 L2 = 2
 delta2 = [3.16432, 0.30602, 0.38759, 0.00014, 0.76665, 1.46462, 0.71527, 0.40628, 1.10893, 3.43631]
@@ -14,7 +23,6 @@ thetak2 = [0.15546, 1.08317, 0.75567, 2356.1, 0.70974, 0.43797, 0.76281, 0.92664
 gamma2 = [[1.23196, 1.25983, 1.09208, 1.76048, 0.66919, 0.38236, 1.62877, 0.25181, 0.00013,0.17286],
          [0.58961, 1.13693, 1.44299, 0.61249, 0.96521, 0.90306, 0.00027, 1.9836, 2.05802, 2.2268]]
 thetal2 = [0.27893, 0.27893]
-test2 = SPA(L2, delta2, thetak2, gamma2, thetal2)
 
 L3 = 3
 delta3 = [2.87809, 0.0692, 0.4093, 0.00011, 0.41783, 0.89363, 0.62933, 0.07522, 0.94298, 0.24027]
@@ -23,9 +31,20 @@ gamma3 = [[1.53656, 1.65325, 1.40528, 2.21041, 0.89791, 0.47588, 2.03823, 0.3190
          [0.53799, 1.48189, 1.52888, 0.80035, 0.49815, 0.19579, 0.00016, 1.67935, 2.57097, 3.74475],
          [0.54511, 0.31274, 0.89069, 0.16694, 1.54077, 1.97499, 0.00118, 2.05421, 0.80364, 0.0107]]
 thetal3 = [0.17448, 0.17448, 0.17448]
-test3 = SPA(L3, delta3, thetak3, gamma3, thetal3)
 
-test3.KL_fir(0)
-test2.KL_fir(0)
-test1.KL_fir(0)
+dic = { 'CBV1':{ 'L': L1, 'delta': delta1,'thetak': thetak1,
+                 'gamma':gamma1, 'thetal':thetal1},
+        'CBV2':{ 'L': L2, 'delta': delta2,'thetak': thetak2,
+                 'gamma':gamma2, 'thetal':thetal2},
+        'CBV3':{ 'L': L3, 'delta': delta3,'thetak': thetak3,
+                 'gamma':gamma3, 'thetal':thetal3}}
+js = json.dumps(dic)
+file = open('test.txt', 'w')
+file.write(js)
+file.close()
+
+
+
+
+
 
