@@ -123,7 +123,9 @@ def mc_contri(load_dict_final):
 
 
 if __name__ == '__main__':
-    pathdic = os.path.join(os.getcwd(), 'MCResult/rc_obligor/CBV2/')
+  #  pathdic = os.path.join(os.getcwd(), 'MCResult/rc_obligor/CBV2/')
+
+    pathdic = os.path.join( '/home/zhuangby/CR-CBV/MCmethod/MCResult/rc_obligor/CBV2/')
 
     tp = np.arange(0.001, 0.35, 0.002)
     datap = pan.read_csv(os.path.join(pathdic, 'pmc_loss.csv'))
@@ -135,26 +137,28 @@ if __name__ == '__main__':
     # range95 = np.arange(0.455,0.46, 0.00002)
     # range99 = np.arange(0.795, 0.8, 0.00002)
 
-    pmc_ans = pmc_result(datap, tp)
-    ismc_ans = ismc_result(datais, losshood, SINGLE = False)
 
-    plt.figure(0, figsize=(12, 8))
-    plt.plot( pmc_ans.var_mean,pmc_ans.tp, label="MC(P)-CBV2")
-    plt.plot( ismc_ans.var,ismc_ans.tp_mean, label="MC(IS)-CBV2")
-    plt.xlabel('VaR x',  fontsize=15)
-    plt.ylabel('Tail probability', fontsize=15)
-    plt.legend(fontsize = 15)
-    plt.savefig("var_mc.png")
-    plt.show()
+    # pmc_ans = pmc_result(datap, tp)
+    # ismc_ans = ismc_result(datais, losshood, SINGLE = False)
+    #
+    # plt.figure(0, figsize=(12, 8))
+    # plt.plot( pmc_ans.var_mean,pmc_ans.tp, label="MC(P)-CBV2")
+    # plt.plot( ismc_ans.var,ismc_ans.tp_mean, label="MC(IS)-CBV2")
+    # plt.xlabel('VaR x',  fontsize=15)
+    # plt.ylabel('Tail probability', fontsize=15)
+    # plt.legend(fontsize = 15)
+    # plt.savefig("var_mc.png")
+    # plt.show()
+    #
+    # plt.figure(0, figsize=(12, 8))
+    # plt.plot(pmc_ans.es_mean, pmc_ans.tp, label="MC(P)-CBV2")
+    # plt.plot(ismc_ans.es_mean, ismc_ans.tp_mean, label="MC(IS)-CBV2")
+    # plt.xlabel('ES ', fontsize=15)
+    # plt.ylabel('Tail probability', fontsize=15)
+    # plt.legend(fontsize=15)
+    # plt.savefig("es_mc.png")
+    # plt.show()
 
-    plt.figure(0, figsize=(12, 8))
-    plt.plot(pmc_ans.es_mean, pmc_ans.tp, label="MC(P)-CBV2")
-    plt.plot(ismc_ans.es_mean, ismc_ans.tp_mean, label="MC(IS)-CBV2")
-    plt.xlabel('ES ', fontsize=15)
-    plt.ylabel('Tail probability', fontsize=15)
-    plt.legend(fontsize=15)
-    plt.savefig("es_mc.png")
-    plt.show()
 
 
 
@@ -175,40 +179,50 @@ if __name__ == '__main__':
 
     coca = cgf_calculation(pf, cbvpara)
     kimca = Kimfunction(coca)
-    model = RCcalculation(kimca, est_spt = 2.80, x0 = 0.45)
+    model = RCcalculation(kimca, est_spt = 2.80, x0 = 0.44)
 
-    martin = model.VARC_MARTIN()
-    kim = model.VARC_KIM()
-    eskim = model.ESC_KIM()
+    # martin = model.VARC_MARTIN()
+    # kim = model.VARC_KIM()
+    # eskim = model.ESC_KIM()
+
+    esc_diff = model.ESC_diff()
 
     df = pf.df
     df["p_varc"] = pmc_contri["varc_mean"]
     df["is_varc"] = ismc_contri["varc_mean"]
-    df["m_varc"] = martin
-    df["K_varc"] = kim
-    df["K_esc"] = eskim
+ #   df["m_varc"] = martin
+ #   df["K_varc"] = kim
+ #   df["K_esc"] = eskim
+    df["ESC_diff"] = esc_diff
     df["p_esc"] = pmc_contri["esc_mean"]
     df["is_esc"] = ismc_contri["esc_mean"]
     df= df.sort_values(by='EL', ascending=True)
 
 
     plt.figure(0, figsize=(12, 8))
-    plt.plot(df.EL, df.p_varc, label="MC(P)-CBV2")
-    plt.plot(df.EL, df.is_varc, label="MC(IS)-CBV2")
-    plt.plot(df.EL, df.m_varc, label="Mt-CBV2")
-    plt.plot(df.EL, df.K_varc, label="Kim-CBV2")
-    plt.xlabel('EL ',  fontsize=15)
+    plt.plot(df.EL, df.p_varc, "ro",  label="MC(P)-CBV2",)
+    plt.plot(df.EL, df.is_varc, "b--", label="MC(IS)-CBV2")
+   # plt.plot(df.EL, df.m_varc, label="Mt-CBV2")
+   # plt.plot(df.EL, df.K_varc, label="Kim-CBV2")
+    plt.xlabel('Expected Loss ',  fontsize=15)
     plt.ylabel('var contribution', fontsize=15)
     plt.legend(fontsize = 15)
     plt.savefig("varc_mc.png")
     plt.show()
 
     plt.figure(0, figsize=(12, 8))
-    plt.plot(df.EL, df.p_esc, label="MC(P)-CBV")
-    plt.plot(df.EL, df.is_esc, label="MC(IS)-CBV")
-    plt.plot(df.EL[92:], df.K_esc[92:], label="Kim-CBV")
+    plt.plot(df.EL, df.p_esc,"ro", label="MC(P)-CBV")
+    plt.plot(df.EL, df.is_esc, "b--",label="MC(IS)-CBV")
+    plt.plot(df.EL, df.ESC_diff, label="ESC_diff_CBV")
     plt.xlabel('EL ',  fontsize=15)
     plt.ylabel('es contribution', fontsize=15)
     plt.legend(fontsize = 15)
     plt.savefig("esc_mc.png")
     plt.show()
+
+
+
+
+
+
+

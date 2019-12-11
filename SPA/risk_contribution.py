@@ -3,6 +3,8 @@ import numpy as np
 from cgf_functions import cgf_calculation
 from DataPre.info_portfolio_CBV import portfolio_info,CBVmodel
 from scipy.stats import norm
+import matplotlib.pyplot as plt
+import math
 
 class Kimfunction():
     def __init__(self, coca):
@@ -172,36 +174,54 @@ class RCcalculation():
 
         return ans - self.x0
 
-
-    def VARC_MARTIN(self):
-        """
-        to calculate the VARC, the necessary input is i0 and x0
-        :return:
-        """
+    def PDF(self):
 
         spt = fsolve(self.__KL_fir_x, self.est_spt)
-
-        # the obligor is in sector ik, but the index for para is idx
-        # idx = self.ik - 1
-        # temp1 = self.ipl * self.ipd * np.exp(t0 * self.ipl)
-
-        temp1 = self.df.PL.values * self.df.PD.values * np.exp(spt * self.df.PL.values)
-
-        # self.coca.PK(i + 1, t)
-
-        temp2 = [(self.delta[ w -1] * self.thetak[ w -1]) / (1 - self.delta[ w -1] * self.coca.PK(w, spt))
-                 for w in self.df.sector.values]
-
-        temp3 = 0
-        for l in np.arange(0, self.L):
-            pl = 0
-            for i in np.arange(0, self.K):
-                pl += self.coca.PK(i + 1, spt) * self.gamma[l][i]
-            temp3 +=  self.thetal[l] /  ( 1 -pl)
-
-        ans = temp1 * (np.array(temp2) + temp3)
+        rho3 = self.coca.KL_thi(spt) / (self.coca.KL_sec(spt)**1.5)
+        rho4 = self.coca.KL_for(spt) / (self.coca.KL_sec(spt)**2)
+        ans = np.exp(self.coca.KL(spt) - spt*self.x0)/np.sqrt(2*math.pi*self.coca.KL_sec(spt))*(1+1/8*(rho4-5/3*rho3**2))
 
         return ans
+
+
+
+    def VARC_MARTIN(self):
+
+        spt = fsolve(self.__KL_fir_x, self.est_spt)
+        KLdrv = self.coca.KL_drv(spt)
+        ans = self.df.PL.values / spt * KLdrv
+        return ans
+
+    def VARC_diff(self):
+
+        spt = fsolve(self.__KL_fir_x, self.est_spt)
+        KLdrv = self.coca.KL_drv(spt)
+        KLdrv2 = self.coca.KL_sec_drv(spt)
+
+        uhat = spt * np.sqrt(self.coca.KL_sec(spt))
+        what = np.sign(spt) * np.sqrt(2 * (spt * self.x0 - self.coca.KL(spt)))
+
+        cdf_drv = - norm.pdf(what) * ( KLdrv * (1/what**3 - 1/uhat) + 0.5* (KLdrv2 / (uhat*self.coca.KL_sec(spt))) )
+        pdf = self.PDF()
+        ans = cdf_drv/pdf * self.df.PL.values
+
+        return ans
+
+    def ESC_diff(self):
+
+        spt = fsolve(self.__KL_fir_x, self.est_spt)
+        KLdrv = self.coca.KL_drv(spt)
+        KLdrv2 = self.coca.KL_sec_drv(spt)
+
+        uhat = spt * np.sqrt(self.coca.KL_sec(spt))
+        what = np.sign(spt) * np.sqrt(2 * (spt * self.x0 - self.coca.KL(spt)))
+
+        ans = - norm.pdf(what) * (KLdrv * ( - self.Lmean / what ** 3 + self.x0 / uhat)
+                                      - self.x0/2 * (KLdrv2 / (uhat * self.coca.KL_sec(spt))))
+
+        return ans* self.df.PL.values
+
+
 
 
     def VARC_KIM(self):
@@ -279,8 +299,25 @@ if __name__ == '__main__':
     coca = cgf_calculation(pf, cbvpara)
     kimca = Kimfunction(coca)
 
-    model = RCcalculation( kimca, est_spt = 2.80, x0 = 0.45)
+    model = RCcalculation( kimca, est_spt = 2.78, x0 = 0.4419)
 
-    martin = model.VARC_MARTIN()
-   # kim = model.VARC_KIM()
-    es = model.ESC_KIM()
+   # martin = model.VARC_MARTIN()
+    esc_diff = model.ESC_diff()
+
+
+"""
+    df = pf.df
+    df["m_varc"] = martin
+    df["varc_diff"] = varc_diff
+
+    df = df.sort_values(by='EL', ascending=True)
+
+    plt.figure(0, figsize=(12, 8))
+    plt.plot(df.EL, df.m_varc, label="M")
+    plt.plot(df.EL, df.varc_diff, label="M2")
+    plt.xlabel('EL ', fontsize=15)
+    plt.ylabel('es contribution', fontsize=15)
+    plt.legend(fontsize=15)
+    plt.savefig("haha.png")
+    plt.show()
+"""

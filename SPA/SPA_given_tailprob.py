@@ -80,7 +80,6 @@ class SPAcalculation():
         else:
             ans = norm.cdf(what) + norm.pdf(what) * (1 / what - 1 / uhat)
         return (1-ans) - self.tailprob
-
     def function_tailprob_changeto_VaR_2nd(self, var):
         """
         :return: given the var, return the corresponding spt, then return the CDF
@@ -129,8 +128,6 @@ class SPAcalculation():
                         lambda4 / 8 - 5 * (lambda3 ** 2) / 24)
             ans = norm.cdf(what) + norm.pdf(what) * (1 / what - 1 / uhat -temp)
         return (1-ans) - self.tailprob
-
-
 
     def solver_tailprob_changeto_VaR_spt(self):
         """
@@ -199,8 +196,6 @@ class SPAcalculation():
         spt = fsolve(KL_fir_changing, self.est_spt)
 
         return var,spt
-
-
 
 
     # two calls of SPA
@@ -318,10 +313,10 @@ if __name__ == '__main__':
 
 
     pf = portfolio_info()
-    pf.init_obligor()
+    pf.init_rcobligor()
 
     cbvpara = CBVmodel()
-    cbvpara.CBV3()
+    cbvpara.CBV2()
 
     coca = cgf_calculation(pf, cbvpara)
     root = coca.QL_root()
@@ -339,7 +334,7 @@ if __name__ == '__main__':
     df_ans = pan.DataFrame({"spt":spt_set, "KL_fir":ans_set})
     print("the relation between spt and the first order of CGF:", df_ans)
 
-    model = SPAcalculation(coca,  est_spt = 0.8, est_var = 1.3, tailprob= 0.1)
+    model = SPAcalculation(coca,  est_spt = 2.8, est_var = 0.45, tailprob= 0.05)
 
     start_time = time.time()
     var, spt = model.solver_tailprob_changeto_VaR_spt_2nd()

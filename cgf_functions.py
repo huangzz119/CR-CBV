@@ -7,6 +7,7 @@ import os
 import sys
 filename = os.path.abspath(os.path.dirname(os.getcwd()))
 sys.path.append(filename)
+import matplotlib.pyplot as plt
 
 from scipy.optimize import fsolve
 
@@ -62,6 +63,18 @@ class cgf_calculation():
         pk_drv = sum((st.PL ** n) * st.PD * (np.exp(t * st.PL)))
         return pk_drv
 
+    def PL(self, l, t):
+        ans = 0
+        for i in np.arange(0, self.K):
+            ans += self.PK(i + 1, t) * self.gamma[l][i]
+        return ans
+
+    def PL_drv(self, l, t, n):
+        ans = 0
+        for i in np.arange(0, self.K):
+            ans += self.PK_drv(i + 1, t, n) * self.gamma[l][i]
+        return ans
+
     def KL(self, t):
         ans = 0
         # sum of all sectors
@@ -81,6 +94,21 @@ class cgf_calculation():
                 ans = np.nan
             else:
                 ans = ans + temp_
+        return ans
+
+    def KL_drv(self, t):
+
+        temp1 = t * self.df.PD.values * np.exp(t * self.df.PL.values)
+        temp2 = [(self.delta[w - 1] * self.thetak[w - 1]) / (1 - self.delta[w - 1] * self.PK(w, t)) for w in
+                 self.df.sector.values]
+        temp3 = np.zeros(len(temp1))
+        for l in np.arange(0, self.L):
+            pl = 0
+            for i in np.arange(0, self.K):
+                pl += self.PK(i + 1, t) * self.gamma[l][i]
+            temp3 += np.array([self.thetal[l] * self.gamma[l][w - 1] / (1 - pl) for w in self.df.sector.values])
+        ans = temp1 * (np.array(temp2) + temp3)
+
         return ans
 
     def KL_fir(self, t):
@@ -129,6 +157,33 @@ class cgf_calculation():
             Nl2 = pl2 / (1 - pl)
             temp_ = self.thetal[l] * (Nl2 + (Nl1 ** 2))
             ans += temp_
+
+        return ans
+
+    def KL_sec_drv(self, t):
+
+        ploss = self.df.PL.values
+
+        temp1 = []
+        Num = 0
+        for w in self.df.sector.values:
+            tempa =  (2*ploss[Num] + t*(ploss[Num]**2))/(1-self.delta[w-1]*self.PK(w, t))
+            tempb = self.delta[w-1]* (t*self.PK_drv(w,t,2) + 2*(1+t*ploss[Num])*self.PK_drv(w,t,1))/((1-self.delta[w-1]*self.PK(w, t))**2)
+            tempc =  2*t*((self.delta[w-1]*self.PK_drv(w,t,1))**2)/((1-self.delta[w-1]*self.PK(w, t))**3)
+            temp = (self.delta[w - 1] * self.thetak[w - 1]) *(tempa + tempb + tempc)
+            temp1.append(temp[0])
+            Num += 1
+
+        temp2 = np.zeros(len(temp1))
+        for l in np.arange(0, self.L):
+            tempa = (2 * ploss + t * (ploss ** 2)) / (1 - self.PL(l, t))
+            tempb = (t * self.PL_drv(l, t, 2) + 2 * (1 + t * ploss) * self.PL_drv(l, t, 1)) / ((1 - self.PL(l, t)) ** 2)
+            tempc = ((2 * t * self.PL_drv(l, t, 1)) ** 2) / ((1 - self.PL(l, t)) ** 3)
+
+            temp = np.array([(self.thetal[l] * self.gamma[l][w - 1]) for w in self.df.sector.values ])
+            temp2 += temp * (tempa + tempb + tempc)
+
+        ans = self.df.PD.values * np.exp(t * ploss) * (np.array(temp1) + temp2 )
 
         return ans
 
@@ -205,6 +260,8 @@ class cgf_calculation():
 
         return ans
 
+
+
     def skewness(self):
         ans = self.KL_thi(0) / (self.KL_sec(0))**1.5
         return ans
@@ -212,6 +269,22 @@ class cgf_calculation():
     def kurtosis(self):
         ans = self.KL_for(0) / (self.KL_sec(0))**2 + 3
         return ans
+
+if __name__ == '__main__':
+
+    pf = portfolio_info()
+    pf.init_rcobligor()
+
+    cbvpara = CBVmodel()
+    cbvpara.CBV2()
+
+    coca = cgf_calculation(pf, cbvpara)
+
+    coca.KL_sec_drv(1.9)
+
+
+
+
 
 
 
