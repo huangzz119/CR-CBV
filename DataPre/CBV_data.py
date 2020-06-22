@@ -6,10 +6,16 @@ Created on Wed Sep 4 17:43:41 2019
 
 """
 provide the all the initial parameter numbers of CBV model in txt,
-
 the txt file is used in info_of_portfolio_CBV
 """
+import os
+import sys
+os.getcwd()
+fileDir = os.path.dirname(os.getcwd())
+sys.path.append(fileDir)
 import json
+
+
 
 L1 = 1
 delta1 = [3.10470, 0.32719, 0.24383, 0.84626, 0.74251, 1.50169, 1.37805, 1.34703, 2.41331, 5.33036]
@@ -38,8 +44,9 @@ dic = { 'CBV1':{ 'L': L1, 'delta': delta1,'thetak': thetak1,
                  'gamma':gamma2, 'thetal':thetal2},
         'CBV3':{ 'L': L3, 'delta': delta3,'thetak': thetak3,
                  'gamma':gamma3, 'thetal':thetal3}}
+
 js = json.dumps(dic)
-file = open('test.txt', 'w')
+file = open(fileDir + "/DataPre/test.txt", 'w')
 file.write(js)
 file.close()
 

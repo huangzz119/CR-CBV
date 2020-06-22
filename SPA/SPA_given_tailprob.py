@@ -1,8 +1,7 @@
 import numpy as np
-import math
 
 from DataPre.info_portfolio_CBV import portfolio_info,CBVmodel
-
+import matplotlib.pyplot as plt
 import os
 import sys
 filename = os.path.abspath(os.path.dirname(os.getcwd()))
@@ -10,7 +9,7 @@ sys.path.append(filename)
 
 from scipy.stats import norm
 from scipy.optimize import fsolve,minimize
-from cgf_functions import cgf_calculation
+from SPA.cgf_functions import cgf_calculation
 import pandas as pan
 import time
 
@@ -80,6 +79,7 @@ class SPAcalculation():
         else:
             ans = norm.cdf(what) + norm.pdf(what) * (1 / what - 1 / uhat)
         return (1-ans) - self.tailprob
+
     def function_tailprob_changeto_VaR_2nd(self, var):
         """
         :return: given the var, return the corresponding spt, then return the CDF
@@ -208,7 +208,7 @@ class SPAcalculation():
             ans = self.coca.KL_fir(t) + self.coca.KL_sec(t) / self.coca.KL_fir(t)
             return ans - var
 
-        troot = fsolve(KL_fir_change, np.array([0.1]))
+        troot = fsolve(KL_fir_change, np.array([1.2]))
 
         KL_ = self.coca.KL(troot) + np.log(self.coca.KL_fir(troot)) - np.log(self.coca.KL_fir(0))
         try:
@@ -313,10 +313,10 @@ if __name__ == '__main__':
 
 
     pf = portfolio_info()
-    pf.init_rcobligor()
+    pf.init_rcobligor1()
 
     cbvpara = CBVmodel()
-    cbvpara.CBV2()
+    cbvpara.CBV1()
 
     coca = cgf_calculation(pf, cbvpara)
     root = coca.QL_root()
@@ -325,44 +325,90 @@ if __name__ == '__main__':
     print("the first order derivative of cgf at t=0:", coca.KL_fir(0))
     print("minimum upper bound of t inside the root of cgf:", root)
 
-    ans_set = []
+    firans_set = []
+    klans_set = []
     spt_set = np.arange(0.01, root-0.005, 0.05)
     for t in spt_set :
+        ans1 = coca.KL_fir(t)
+        ans2 = coca.KL(t)
+        firans_set.append(ans1)
+        klans_set.append(ans2)
+
+    ans_set = []
+    spt_set = np.arange(0.01, root - 0.005, 0.05)
+    for t in spt_set:
         ans = coca.KL_fir(t)
         ans_set.append(ans)
+    result = pan.DataFrame()
+    result["spt"] = spt_set
+    result["fir"] = ans_set
 
-    df_ans = pan.DataFrame({"spt":spt_set, "KL_fir":ans_set})
+    plt.figure(1, figsize=(12, 6))
+    plt.subplot(121)
+    plt.plot( spt_set, klans_set)
+    plt.xlabel('t', fontsize=15)
+    plt.ylabel('K(t)', fontsize=15)
+    plt.title("CGF")
+    plt.grid(linestyle='-.')
+
+    plt.subplot(122)
+    plt.plot(spt_set, firans_set)
+    plt.xlabel('t',  fontsize=15)
+    plt.ylabel('K\'(t)', fontsize=15)
+    plt.grid(linestyle='-.')
+    plt.title( "first derivative of CGF" )
+    plt.savefig("ans.png")
+    plt.show()
+
+    df_ans = pan.DataFrame({"spt":spt_set, "KL_fir":firans_set})
     print("the relation between spt and the first order of CGF:", df_ans)
 
-    model = SPAcalculation(coca,  est_spt = 2.8, est_var = 0.45, tailprob= 0.05)
+
+    model = SPAcalculation(coca,  est_spt = 0.5, est_var = 3, tailprob= 0.1)
+
+    # var = 1.7078 spt = 0.998
+    start_time = time.time()
+    var1, spt1 = model.solver_tailprob_changeto_VaR_spt()
+    print("var value", var1)
+    print("--- %s seconds in var---" % (time.time() - start_time))
 
     start_time = time.time()
-    var, spt = model.solver_tailprob_changeto_VaR_spt_2nd()
-    print("var value", var)
+    var2, spt2 = model.solver_tailprob_changeto_VaR_spt_2nd()
+    print("var value", var2)
     print("--- %s seconds in var---" % (time.time() - start_time))
-    # var = 0.82766, spt = 2.5232
-    # var = 0.445, spt = 2.789
+    # var = 0.4418, spt = 2.789
 
     start_time = time.time()
     es1 = model.ES1()
+    print("ES value", es1)
     print("--- %s seconds in ES1---" % (time.time() - start_time))
     # 0.7134
 
     start_time = time.time()
     es2 = model.ES2()
-    print("--- %s seconds in ES2---" % (time.time() - start_time))
+    print("ES value", es2)
+    print("--- %ses seconds in ES2---" % (time.time() - start_time))
     # 0.800
 
     start_time = time.time()
     es3 = model.ES3()
+    print("ES value", es3)
     print("--- %s seconds in ES3---" % (time.time() - start_time))
     # 0.6548
 
     start_time = time.time()
-    init = np.array(0.445, dtype="float")
-    es4 = minimize(model.check_function, init, method='Nelder-Mead')
+    #init = np.array(coca.Lmean, dtype="float")
+    init = np.array(coca.Lmean, dtype="float")
+    eshh = minimize(model.check_function, init, method='Nelder-Mead')
+    print("ES value", es4)
     print("--- %s seconds in ES4---" % (time.time() - start_time))
-    # 0.6546
+    # 0.4383, 0.6546
+
+
+
+
+
+
 
 
 

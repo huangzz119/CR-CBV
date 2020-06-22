@@ -8,11 +8,8 @@ import numpy as np
 fileDir = os.path.join(os.getcwd())
 sys.path.append(fileDir)
 
-#获取上级目录
-#fileDir_creat = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
-#fileup = os.path.abspath(os.path.dirname(os.getcwd()))
-
 # there are five obligors in each sectors
+
 nsenario = 10
 vden = 0
 vnen = [0]*100
@@ -62,7 +59,4 @@ for ob in objects:
                 print("success initial the contribution data")
 
 
-
-
-#a = pan.read_csv(PATH_MODEL + '/pmc_loss.csv')
 

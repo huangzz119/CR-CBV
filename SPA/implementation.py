@@ -1,4 +1,4 @@
-from cgf_functions import cgf_calculation
+from SPA.cgf_functions import cgf_calculation
 from DataPre.info_portfolio_CBV import portfolio_info, CBVmodel
 import pandas as pan
 import time
@@ -74,9 +74,9 @@ print("--- %s seconds in calculation VaR of PMC---" % (time.time() - start_time)
 
 start_time = time.time()
 datais = pan.read_csv(os.path.join(pathdic, 'ismc_data.csv'))
-range90 = np.arange(1.31,1.35, 0.00005)
-range95 = np.arange(1.71, 1.73, 0.00005)
-ismc90 = ismc_result(datais, range90, SINGLE= True, level= 0.1)
+range90 = np.arange(1.29,1.33, 0.0005)
+range95 = np.arange(4.49, 4.55, 0.0005)
+ismc90 = ismc_result(datais, range95, SINGLE= True, level= 0.001)
 print("--- %s seconds in calculation VaR of ISMC---" % (time.time() - start_time))
 
 

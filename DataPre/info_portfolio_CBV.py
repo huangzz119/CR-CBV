@@ -3,17 +3,12 @@ Created on Wed Sep 4 17:43:41 2019
 
 @author: hzz
 """
-
 # path add into current package
 import os
 import sys
 os.getcwd()
-
-fileDir = os.path.dirname(os.path.dirname(os.getcwd()))
+fileDir = os.path.dirname(os.getcwd())
 sys.path.append(fileDir)
-import sys
-#fileDir = os.path.join(os.getcwd(), 'DataPre')
-#sys.path.append(fileDir)
 
 import pandas as pan
 import numpy as np
@@ -55,9 +50,7 @@ class portfolio_info():
 
     def init_obligor(self):
 
-        print("information of 3000 obligors ")
-
-        df_origin = pan.read_excel("Testing.xls", header=1)
+        df_origin = pan.read_excel(fileDir+"/DataPre/Testing.xls", header=1)
         df_info = df_origin.iloc[0:df_origin.shape[0], [2, 7, 19, 15, 6]]
         df_info.columns = ["obligor", "PD", "PL", "sector", "rating"]
         df_info["EL"] = df_info.apply(lambda x: x["PD"] * x["PL"], axis=1)
@@ -74,9 +67,7 @@ class portfolio_info():
 
     def init_sector(self):
 
-        print("information of 10 sectors")
-
-        df_origin = pan.read_excel("Testing.xls", header=1)
+        df_origin = pan.read_excel(fileDir+"/DataPre/Testing.xls", header=1)
         df_info = df_origin.iloc[0:df_origin.shape[0], [2, 7, 19, 15, 6]]
         df_info.columns = ["obligor", "PD", "PL", "sector", "rating"]
         df_info["EL"] = df_info.apply(lambda x: x["PD"] * x["PL"], axis=1)
@@ -93,11 +84,9 @@ class portfolio_info():
         self.df = df_sector
         self.Lmean = sum(df_sector.EL)
 
-    def init_rcobligor(self):
+    def init_rcobligor1(self):
 
-        print("information for risk contribution")
-
-        df_origin = pan.read_excel("Testing.xls", header=1)
+        df_origin = pan.read_excel(fileDir+"/DataPre/Testing.xls", header=1)
         df_info = df_origin.iloc[0:df_origin.shape[0], [2, 7, 19, 15, 6]]
         df_info.columns = ["obligor", "PD", "PL", "sector", "rating"]
         df_info["EL"] = df_info.apply(lambda x: x["PD"] * x["PL"], axis=1)
@@ -109,18 +98,48 @@ class portfolio_info():
         df_obligor.loc[:, "EL"] = list(map(lambda x: x * 2 / 100000000, elcopy))
 
         df_rc = df_obligor.loc[df_obligor["sector"] == 1]
-        df_rc = df_rc.sort_values(by='PL', ascending=True).drop_duplicates(['PL'])[:10]
+        df_rc = df_rc.sort_values(by='PL', ascending=True).drop_duplicates(['EL'])[25:45]
 
         for i in np.arange(2, 11):
-            df2 = df_obligor.loc[df_obligor["sector"] == i].sort_values(by='PL', ascending=True)
+            df2 = df_obligor.loc[df_obligor["sector"] == i].sort_values(by='EL', ascending=True)
             tempdf = pan.concat([df_rc, df2], ignore_index=True)
             df2 = tempdf.drop_duplicates(['PL'])
-            df2_select = df2.loc[df2["sector"] == i][:10]
+            df2_select = df2.loc[df2["sector"] == i][25:45]
             df_rc = pan.concat([df_rc, df2_select], ignore_index=True)
 
-      # df_rc = df_rc.sort_values(by='PL', ascending=True)
+        self.df = df_rc
+        self.Lmean = sum(df_rc.EL)
 
-      # sort descending, replace the df and Lmean
+    def init_rcobligor2(self):
+
+        print("information for risk contribution")
+
+        df_origin = pan.read_excel(fileDir+"/DataPre/Testing.xls", header=1)
+        df_info = df_origin.iloc[0:df_origin.shape[0], [2, 7, 19, 15, 6]]
+        df_info.columns = ["obligor", "PD", "PL", "sector", "rating"]
+        df_info["EL"] = df_info.apply(lambda x: x["PD"] * x["PL"], axis=1)
+
+        df_obligor = df_info.iloc[range(0, len(df_info), 2)]
+        plcopy = df_obligor.loc[:, "PL"].copy()
+        df_obligor.loc[:, "PL"] = list(map(lambda x: x * 2 / 100000000, plcopy))
+        elcopy = df_obligor.loc[:, "EL"].copy()
+        df_obligor.loc[:, "EL"] = list(map(lambda x: x * 2 / 100000000, elcopy))
+
+        df_rc = df_obligor.loc[df_obligor["sector"] == 1]
+        df_rc = df_rc.sort_values(by='PL', ascending=False).drop_duplicates(['PL']).iloc[[1,2,3,1]]
+
+        df2 = df_obligor.loc[df_obligor["sector"] == 2].sort_values(by='PL', ascending=False)
+        tempdf = pan.concat([df_rc, df2], ignore_index=True)
+        df2 = tempdf.drop_duplicates(['EL'])
+        df2_select = df2.loc[df2["sector"] == 2].iloc[[4,4, 4,4]]
+        df_rc = pan.concat([df_rc, df2_select], ignore_index=True)
+
+        df3 = df_obligor.loc[df_obligor["sector"] == 3].sort_values(by='PL', ascending=False)
+        tempdf = pan.concat([df_rc, df3], ignore_index=True)
+        df2 = tempdf.drop_duplicates(['EL'])
+        df2_select = df2.loc[df2["sector"] == 3].iloc[[4, 4, 4, 4]]
+        df_rc = pan.concat([df_rc, df2_select], ignore_index=True)
+
         self.df = df_rc
         self.Lmean = sum(df_rc.EL)
 
@@ -132,7 +151,7 @@ there are five parameter sets.
 
 class CBVmodel():
 
-    datafile = open('test.txt', 'r')
+    datafile = open(fileDir+"/DataPre/test.txt", 'r')
     js = datafile.read()
     dic = json.loads(js)
     datafile.close()
@@ -166,28 +185,11 @@ class CBVmodel():
         self.thetal = CBVmodel.dic["CBV3"]["thetal"]
 
 
-
 if __name__ == '__main__':
 
     # read all portfolio information
     pf = portfolio_info()
-
-    # information of all obligors
-   # pf.init_obligor()
-
-    # information of all sectors
-   # pf.init_sector()
-
-    # information of five obligors in each sector
-    pf.init_rcobligor()
-   # pf.__dict__
-
-
-   # model = CBVmodel()
-
-   # model.CBV1()
-   # model.CBV2()
-   # model.CBV3()
+    model = CBVmodel()
 
 
 

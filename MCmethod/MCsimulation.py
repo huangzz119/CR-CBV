@@ -7,13 +7,13 @@ from scipy.optimize import fsolve
 import json
 
 import os
-from cgf_functions import cgf_calculation
+from SPA.cgf_functions import cgf_calculation
 import time
 
 
 class MCsimulation():
 
-    def __init__(self, coca, est_spt= 0.9, x0 = 1.72, level = 0.8277):
+    def __init__(self, coca, est_spt= 0.9977, x0 = 1.7078, level = 0.5543928):
 
         self.coca = coca
 
@@ -281,15 +281,16 @@ if __name__ == '__main__':
     coca = cgf_calculation(pf, cbvpara)
     model = MCsimulation(coca)
 
-    pathdic = os.path.join(os.path.join(os.getcwd()), 'MCResult/obligor/CBV3/')
+    # pathdic = os.path.join(os.path.join(os.getcwd()), 'MCResult/obligor/CBV1/')
+    pathdic = os.path.join( '/home/zhuangby/CR-CBV/MCmethod/MCResult/obligor/CBV2/')
 
-   # start_time = time.time()
-   # isresult = model.MCIS(nsenario = 10, nSim = 100000, PATH_MODEL= pathdic, CONTRI= False)
-   # print("--- %s seconds in MCIS---" % (time.time() - start_time))
+    start_time = time.time()
+    isresult = model.MCIS(nsenario = 10, nSim = 100000, PATH_MODEL= pathdic, CONTRI= False)
+    print("--- %s seconds in MCIS---" % (time.time() - start_time))
     #478.81078
 
     start_time = time.time()
-    presult = model.MCP(nsenario=10, nSim= 200000, PATH_MODEL=pathdic, CONTRI= False)
+    presult = model.MCP(nsenario=10, nSim= 500000, PATH_MODEL=pathdic, CONTRI= False)
     print("--- %s seconds in MCP---" % (time.time() - start_time))
     #732.2329988479
 

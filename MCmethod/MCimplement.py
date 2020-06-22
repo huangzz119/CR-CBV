@@ -1,3 +1,9 @@
+import os
+import sys
+os.getcwd()
+fileDir = os.path.dirname(os.getcwd())
+sys.path.append(fileDir)
+
 import pandas as pan
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,7 +11,9 @@ import os
 import json
 from DataPre.info_portfolio_CBV import portfolio_info, CBVmodel
 from SPA.risk_contribution import Kimfunction, RCcalculation
-from cgf_functions import cgf_calculation
+from SPA.cgf_functions import cgf_calculation
+from scipy.optimize import minimize
+from SPA.SPA_given_tailprob import SPAcalculation
 
 def pmc_result(datap, tp):
     """
@@ -61,7 +69,8 @@ def ismc_result(datais, losshood, SINGLE = False, level = .01):
 
         mask = list(map(lambda x: lossis >= x, losshood))
         tpis = list(map(lambda x: (sum(np.array(lhis)[x])) / len(lossis), mask))
-        esis = list(map(lambda x: np.mean(np.array(lhis)[x] * np.array(lossis)[x]), mask))
+        esis = list(map(lambda x: np.mean(np.array(lossis)[x]), mask))
+     #   esis = list(map(lambda x: np.mean( np.array(lhis)[x] * np.array(lossis)[x] ), mask))
 
         ismc_dataframe["tp" + str(ss)] = tpis
         ismc_dataframe["es" + str(ss)] = esis
@@ -121,106 +130,99 @@ def mc_contri(load_dict_final):
 
     return contr_df.loc[:, ["varc_mean", "varc_std", "esc_mean", "esc_std"]]
 
-
 if __name__ == '__main__':
-  #  pathdic = os.path.join(os.getcwd(), 'MCResult/rc_obligor/CBV2/')
 
-    pathdic = os.path.join( '/home/zhuangby/CR-CBV/MCmethod/MCResult/rc_obligor/CBV2/')
-
-    tp = np.arange(0.001, 0.35, 0.002)
+    pathdic = os.path.join( fileDir + '/MCmethod/MCResult/obligor/CBV2/')
+    tp = np.arange(0.01, 0.11, 0.01)
     datap = pan.read_csv(os.path.join(pathdic, 'pmc_loss.csv'))
-
-    losshood = np.arange(0.25, 1.1, 0.005)
+    pmc_ans = pmc_result(datap, tp)
+    losshood = np.arange(4.1, 4.35, 0.05)
     datais = pan.read_csv(os.path.join(pathdic, 'ismc_data.csv'))
+    ismc_ans = ismc_result(datais, losshood, SINGLE = False)
 
-    # range90 = np.arange(0.33, 0.335,0.00002)
-    # range95 = np.arange(0.455,0.46, 0.00002)
-    # range99 = np.arange(0.795, 0.8, 0.00002)
+    pf = portfolio_info()
+    pf.init_obligor()
+    cbvpara = CBVmodel()
+    cbvpara.CBV2()
+    coca = cgf_calculation(pf, cbvpara)
+    root = coca.QL_root()
+    tailprob_set = np.arange(0.001, 0.05, 0.001)
+    ans_set = pan.DataFrame(columns=["var1", "var2", "var_check", "es1", "es2", "es3", "es_check"])
+    init = np.array(2.5, dtype="float")
+    for idx, i in enumerate(tailprob_set):
+        model = SPAcalculation(coca, est_spt=1.2, est_var=2.5, tailprob=i)
+        var1, spt1 = model.solver_tailprob_changeto_VaR_spt()
+        var2, spt2 = model.solver_tailprob_changeto_VaR_spt_2nd()
+        es1 = model.ES1()
+        es2 = model.ES2()
+        es3 = model.ES3()
+        es4 = minimize(model.check_function, init, method='Nelder-Mead')
+        ans_set.loc[idx] = [var1, var2, es4.x[0], es1, es2, es3, es4.fun]
 
+    plt.figure(1, figsize=(12, 8))
+    plt.xlim(0.0001, 0.01)
+    plt.plot( pmc_ans.tp, pmc_ans.var_mean, "y", label="MC(P)")
+    plt.plot( pmc_ans.tp, pmc_ans.var_mean + (1.96 * pmc_ans.var_std / np.sqrt(10)), "y--", label="MC(P)-95%CI")
+    plt.plot( pmc_ans.tp, pmc_ans.var_mean - (1.96 * pmc_ans.var_std / np.sqrt(10)), "y--", label="MC(P)-95%CI")
+    plt.plot( ismc_ans.tp_mean, ismc_ans["var"],  "c",  label="MC(IS)")
+    plt.plot( tailprob_set, ans_set.var1,  label="SPA-first order")
+    plt.plot( tailprob_set, ans_set.var2,  label="SPA-second order")
+    plt.plot( tailprob_set, ans_set.var_check,  label="check function")
+    plt.title("CBV2", fontsize=20)
+    plt.ylabel('RD',  fontsize=15)
+    plt.xlabel('Tail probability', fontsize=15)
+    plt.legend(fontsize = 15)
+    plt.grid(linestyle='-.')
+    plt.savefig("var_new.png")
+    plt.show()
 
-    # pmc_ans = pmc_result(datap, tp)
-    # ismc_ans = ismc_result(datais, losshood, SINGLE = False)
-    #
-    # plt.figure(0, figsize=(12, 8))
-    # plt.plot( pmc_ans.var_mean,pmc_ans.tp, label="MC(P)-CBV2")
-    # plt.plot( ismc_ans.var,ismc_ans.tp_mean, label="MC(IS)-CBV2")
-    # plt.xlabel('VaR x',  fontsize=15)
-    # plt.ylabel('Tail probability', fontsize=15)
-    # plt.legend(fontsize = 15)
-    # plt.savefig("var_mc.png")
-    # plt.show()
-    #
-    # plt.figure(0, figsize=(12, 8))
-    # plt.plot(pmc_ans.es_mean, pmc_ans.tp, label="MC(P)-CBV2")
-    # plt.plot(ismc_ans.es_mean, ismc_ans.tp_mean, label="MC(IS)-CBV2")
-    # plt.xlabel('ES ', fontsize=15)
-    # plt.ylabel('Tail probability', fontsize=15)
-    # plt.legend(fontsize=15)
-    # plt.savefig("es_mc.png")
-    # plt.show()
-
-
+    plt.figure(2, figsize=(12, 8))
+    plt.ylim(3.6, 4.5)
+    plt.xlim(0.002, 0.008)
+    plt.plot( pmc_ans.tp, pmc_ans.es_mean,"y", label="MC(P)")
+    plt.plot( pmc_ans.tp, pmc_ans.es_mean + (1.96 * pmc_ans.es_std / np.sqrt(10)), "y--", label="MC(P)-95%CI")
+    plt.plot( pmc_ans.tp, pmc_ans.es_mean - (1.96 * pmc_ans.es_std / np.sqrt(10)), "y--", label="MC(P)-95%CI")
+    plt.plot( tailprob_set,ans_set.es1, label="two-calls")
+    plt.plot( tailprob_set,ans_set.es2, label="SPA-first order")
+    plt.plot( tailprob_set,ans_set.es3,"o", label="SPA-second order")
+    plt.plot( tailprob_set,ans_set.es_check, label="Check Function")
+    plt.title("CBV1", fontsize=20)
+    plt.ylabel('Expected Shortfall', fontsize=15)
+    plt.xlabel('Tail probability', fontsize=15)
+    plt.legend(fontsize=15)
+    plt.grid(linestyle='-.')
+    plt.savefig("es_new.png")
+    plt.show()
 
 
     with open(os.path.join(pathdic,'IS_contri_data.json'), 'r') as load_f:
         load_dict_IS = json.load(load_f)
-
     with open(os.path.join(pathdic,'P_contri_data.json'), 'r') as load_f:
         load_dict_P = json.load(load_f)
 
-
     pmc_contri = mc_contri(load_dict_IS)
     ismc_contri = mc_contri(load_dict_P)
-
-    pf = portfolio_info()
-    pf.init_rcobligor()
-    cbvpara = CBVmodel()
-    cbvpara.CBV2()
-
-    coca = cgf_calculation(pf, cbvpara)
     kimca = Kimfunction(coca)
     model = RCcalculation(kimca, est_spt = 2.80, x0 = 0.44)
-
-    # martin = model.VARC_MARTIN()
-    # kim = model.VARC_KIM()
-    # eskim = model.ESC_KIM()
-
-    esc_diff = model.ESC_diff()
+    martin = model.VARC_MARTIN()
 
     df = pf.df
     df["p_varc"] = pmc_contri["varc_mean"]
     df["is_varc"] = ismc_contri["varc_mean"]
- #   df["m_varc"] = martin
- #   df["K_varc"] = kim
- #   df["K_esc"] = eskim
-    df["ESC_diff"] = esc_diff
+    df["Martin_varc"] = martin
     df["p_esc"] = pmc_contri["esc_mean"]
     df["is_esc"] = ismc_contri["esc_mean"]
     df= df.sort_values(by='EL', ascending=True)
 
-
     plt.figure(0, figsize=(12, 8))
-    plt.plot(df.EL, df.p_varc, "ro",  label="MC(P)-CBV2",)
-    plt.plot(df.EL, df.is_varc, "b--", label="MC(IS)-CBV2")
-   # plt.plot(df.EL, df.m_varc, label="Mt-CBV2")
-   # plt.plot(df.EL, df.K_varc, label="Kim-CBV2")
+    plt.plot( df.EL, df.p_varc, "ro",  label="MC(P)-CBV2",)
+    plt.plot( df.EL, df.is_varc, "b--", label="MC(IS)-CBV2")
+    plt.plot( df.EL, df.Martin_varc, "b--", label="Martin-CBV2")
     plt.xlabel('Expected Loss ',  fontsize=15)
-    plt.ylabel('var contribution', fontsize=15)
+    plt.ylabel('Var Contribution', fontsize=15)
     plt.legend(fontsize = 15)
     plt.savefig("varc_mc.png")
     plt.show()
-
-    plt.figure(0, figsize=(12, 8))
-    plt.plot(df.EL, df.p_esc,"ro", label="MC(P)-CBV")
-    plt.plot(df.EL, df.is_esc, "b--",label="MC(IS)-CBV")
-    plt.plot(df.EL, df.ESC_diff, label="ESC_diff_CBV")
-    plt.xlabel('EL ',  fontsize=15)
-    plt.ylabel('es contribution', fontsize=15)
-    plt.legend(fontsize = 15)
-    plt.savefig("esc_mc.png")
-    plt.show()
-
-
 
 
 
